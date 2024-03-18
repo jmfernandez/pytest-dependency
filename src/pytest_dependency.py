@@ -172,7 +172,10 @@ def pytest_runtest_setup(item):
             manager.checkDepend(depends, item)
 
 import inspect
-from _pytest.compat import is_generator
+from _pytest.compat import (
+    get_real_func,
+    is_generator,
+)
 
 FirstPassCollect: "MutableMapping[str, List[Union[nodes.Item, nodes.Collector]]]" = dict()
 

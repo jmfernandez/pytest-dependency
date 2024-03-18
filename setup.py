@@ -157,6 +157,7 @@ setup(
         Changes="https://pytest-dependency.readthedocs.io/en/latest/changelog.html",
     ),
     package_dir = {"": "src"},
+    package_data = {"pytest_dependency": ["py.typed"]},
     python_requires = ">=3.4",
     py_modules = ["pytest_dependency"],
     install_requires = ["pytest >= 3.7.0"],

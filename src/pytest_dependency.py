@@ -2,6 +2,21 @@
 
 __version__ = "$VERSION"
 
+from typing import (
+    cast,
+    TYPE_CHECKING,
+)
+
+if TYPE_CHECKING:
+    from typing import (
+        List,
+        MutableMapping,
+        MutableSequence,
+        Sequence,
+        Set,
+        Union,
+    )
+
 import logging
 import pytest
 
@@ -177,12 +192,12 @@ from _pytest.compat import (
     is_generator,
 )
 
-FirstPassCollect: "MutableMapping[str, List[Union[nodes.Item, nodes.Collector]]]" = dict()
+FirstPassCollect: "MutableMapping[str, Sequence[pytest.Item]]" = dict()
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_pycollect_makeitem(
     collector: "Union[pytest.Module, pytest.Class]", name: "str", obj: "object"
-) -> "Union[None, pytest.Item, pytest.Collector, List[Union[nodes.Item, nodes.Collector]]]":
+) -> "Union[None, pytest.Item, pytest.Collector, List[Union[pytest.Item, pytest.Collector]]]":
     assert isinstance(collector, (pytest.Class, pytest.Module)), type(collector)
     # Nothing was collected elsewhere, let's do it here.
     if collector.istestfunction(obj, name):
@@ -194,8 +209,8 @@ def pytest_pycollect_makeitem(
         if (inspect.isfunction(obj) or inspect.isfunction(get_real_func(obj))) and getattr(obj, "__test__", True):
             if not is_generator(obj):
                 retval = list(collector._genfunctions(name, obj))
-                FirstPassCollect[name] = retval
-                return retval
+                FirstPassCollect[name] = cast("Sequence[pytest.Item]", retval)
+                return cast("List[Union[pytest.Item, pytest.Collector]]", retval)
     return None
 
 @pytest.hookimpl(tryfirst=True)
@@ -209,17 +224,17 @@ def pytest_collection_modifyitems(config: "pytest.Config", items: "MutableSequen
         if item.name in seen:
             return seen[item.name]
         
+        if isinstance(item, pytest.Function) and len(item.name) > len(item.originalname):
+            postfix = item.name[len(item.originalname):]
+        else:
+            postfix = ""
         do_append = True
-        new_dependencies = set()
+        new_dependencies: "Set[str]" = set()
         for marker in item.iter_markers(name="dependency"):
             if do_collect or marker.kwargs.get("collect"):
                 new_dependencies = set()
-                if len(item.name) > len(item.originalname):
-                    postfix = item.name[len(item.originalname):]
-                else:
-                    postfix = ""
                 dependencies = set(marker.kwargs.get("depends", []))
-                dfs_funs = []
+                dfs_funs: "MutableSequence[pytest.Item]" = []
                 for dependency in dependencies:
                     funs = FirstPassCollect.get(dependency)
                     new_dependency = dependency
@@ -258,7 +273,7 @@ def pytest_collection_modifyitems(config: "pytest.Config", items: "MutableSequen
                         new_dependencies.update(dfs(fun, do_collect=True))
                 else:
                     do_append = False
-                marker.kwargs["depends"] = list(new_dependencies)
+                marker.kwargs["depends"] = list(new_dependencies)   # type: ignore[index]
                 
         if do_append:
             new_items.append(item)

@@ -189,7 +189,6 @@ def pytest_runtest_setup(item):
 import inspect
 from _pytest.compat import (
     get_real_func,
-    is_generator,
 )
 
 FirstPassCollect: "MutableMapping[str, Sequence[pytest.Item]]" = dict()
@@ -207,7 +206,7 @@ def pytest_pycollect_makeitem(
         # or a functools.wrapped.
         # We mustn't if it's been wrapped with mock.patch (python 2 only).
         if (inspect.isfunction(obj) or inspect.isfunction(get_real_func(obj))) and getattr(obj, "__test__", True):
-            if not is_generator(obj):
+            if not inspect.isgeneratorfunction(obj):
                 retval = list(collector._genfunctions(name, obj))
                 FirstPassCollect[name] = cast("Sequence[pytest.Item]", retval)
                 return cast("List[Union[pytest.Item, pytest.Collector]]", retval)

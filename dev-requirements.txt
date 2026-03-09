@@ -1,3 +1,5 @@
+setuptools
+build
 pytest
 pylint
 mypy
